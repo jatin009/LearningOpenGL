@@ -1,2 +1,2 @@
 # LearningOpenGL
-Project for learning OpenGL from Cherno on YouTube.
+Project for learning OpenGL from YouTube.
