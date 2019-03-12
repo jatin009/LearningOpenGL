@@ -73,8 +73,14 @@ int main(void)
 
 	float positions[] = {
 		-0.5f, -0.5f,
-		 0.0f,  0.5f,
+		-0.5f,  0.5f,
+		 0.5f,  0.5f,
 		 0.5f, -0.5f
+	};
+
+	unsigned int indices[] = {
+		0, 1, 2,
+		2, 3, 0
 	};
 
 	unsigned int buffer;
@@ -83,10 +89,18 @@ int main(void)
 
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), positions, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 
 	glEnableVertexAttribArray(0);
+
+	//Index buffers code
+
+	unsigned int ibo;
+
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW);
 
 	//Vertex Shader Creation
 	std::stringstream source = ParseShader("res/shaders/Vertex.shader");
@@ -123,7 +137,8 @@ int main(void)
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);	//Render from the currently bound buffer
+		//glDrawArrays(GL_TRIANGLES, 0, 3);	//Render from the currently bound buffer
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);	// 2nd param for elements in indices, 3rd param for data type in indices, 4th param should be nullptr if the ibo is already bound using glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo) or else should be indices
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
