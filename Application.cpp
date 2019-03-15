@@ -71,30 +71,38 @@ int main(void)
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	float positions[] = {
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	
+	//Vertex Array Object
+
+	unsigned int vao[2];
+	glGenVertexArrays(2, vao);
+	glBindVertexArray(vao[0]);
+
+	float rect[] = {
 		-0.5f, -0.5f,
 		-0.5f,  0.5f,
 		 0.5f,  0.5f,
 		 0.5f, -0.5f
 	};
+	
+	//Below are the necessary steps to be followed to actually render a triangle as OpenGL is a state machine
+
+	unsigned int buffer[2];
+	glGenBuffers(2, buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[0]);
+	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), rect, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+
+	//Index buffers code
 
 	unsigned int indices[] = {
 		0, 1, 2,
 		2, 3, 0
 	};
-
-	unsigned int buffer;
-
-	//Below are the necessary steps to be followed to actually render a triangle as OpenGL is a state machine
-
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), positions, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-
-	glEnableVertexAttribArray(0);
-
-	//Index buffers code
 
 	unsigned int ibo;
 
@@ -102,6 +110,19 @@ int main(void)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW);
 
+	glBindVertexArray(vao[1]);
+
+	float tri[] = {
+		0.0f, 1.0f,
+		0.5f, 0.5f,
+		-0.5f, 0.5f
+	};
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), tri, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+	
 	//Vertex Shader Creation
 	std::stringstream source = ParseShader("res/shaders/Vertex.shader");
 	unsigned int vShader = CreateShader(GL_VERTEX_SHADER, source.str());
@@ -137,8 +158,19 @@ int main(void)
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		//glDrawArrays(GL_TRIANGLES, 0, 3);	//Render from the currently bound buffer
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);	// 2nd param for elements in indices, 3rd param for data type in indices, 4th param should be nullptr if the ibo is already bound using glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo) or else should be indices
+		/* Uncomment below 2 lines when you've only one vao and comment glBindVertexArray */
+		//glBindBuffer(GL_ARRAY_BUFFER, buffer[0]);
+		//glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+		glBindVertexArray(vao[0]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+		/* Uncomment below 2 lines when you've only one vao and comment glBindVertexArray */
+		//glBindBuffer(GL_ARRAY_BUFFER, buffer[1]);
+		//glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+		glBindVertexArray(vao[1]);
+		glDrawArrays(GL_TRIANGLES, 0, 3);	//Render from the currently bound buffer
+
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);	// 2nd param for elements in indices, 3rd param for data type in indices, 4th param should be nullptr if the ibo is already bound using glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo) or else should be indices
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
