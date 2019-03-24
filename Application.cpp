@@ -119,6 +119,7 @@ int main(void)
 	glBindVertexArray(vao[1]);
 
 	float tri[] = {
+		//positions			
 		0.35f, -0.5f, 0.0f,
 		0.9f, -0.5f, 0.0f,
 		0.45f, 0.5f, 0.0f
@@ -165,6 +166,12 @@ int main(void)
 	if (location != -1)
 	{
 		glUniform4f(location, 0.0f, 0.3f, 0.8f, 1.0f);
+	}
+
+	int xlocation = glGetUniformLocation(program, "u_xShift");
+	if (xlocation != -1)
+	{
+		glUniform1f(xlocation, -0.5f);
 	}
 
 	float r = 0.0f;
