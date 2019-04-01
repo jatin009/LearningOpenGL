@@ -96,15 +96,6 @@ void Shader::UnUse() const
 	glUseProgram(0);
 }
 
-void Shader::SetUniformF(const std::string& name, float f0)
-{
-	int location = glGetUniformLocation(m_RendererID, name.c_str());
-	if (location != -1)
-	{
-		glUniform1f(location, f0);
-	}
-}
-
 void Shader::SetUniformF(const std::string& name, float f0, float f1, float f2, float f3)
 {
 	if (m_UniformLocs.find(name) != m_UniformLocs.end())

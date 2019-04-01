@@ -9,7 +9,9 @@ VertexArray::VertexArray(): m_RendererID(0)
 }
 
 VertexArray::~VertexArray()
-{}
+{
+	glDeleteVertexArrays(1, &m_RendererID);
+}
 
 void VertexArray::AddLayout(VertexLayout& layout)
 {

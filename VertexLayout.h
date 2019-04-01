@@ -32,7 +32,11 @@ public:
 	void Push<float>(int count, void* offset)
 	{
 		m_vLayouts.push_back({ count, GL_FLOAT, GL_FALSE, offset });
-		m_Stride = count * sizeof(float);
+	}
+
+	inline void SetStride(int stride)
+	{
+		m_Stride = stride;
 	}
 
 	inline int GetStride() const
