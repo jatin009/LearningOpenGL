@@ -141,6 +141,7 @@ int main(void)
 		shaderProgram.SetUniform1<float>("u_MixVal", smileyFac);
 
 		va[0].Bind();
+		vbo1.ShiftXY(0.005f, 0.0f );
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
 		//va[1].Bind();
