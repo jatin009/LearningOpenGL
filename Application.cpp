@@ -10,6 +10,9 @@
 #include "Texture.h"
 #include "stb_image.h"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 void inputKey(GLFWwindow* win, float &smileyFactor)
 {
 	if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -60,6 +63,8 @@ int main(void)
 	Texture texture1("res/images/container.jpg", GL_CLAMP_TO_BORDER);
 	Texture texture2("res/images/awesomeface.png", GL_REPEAT);
 
+	Texture texture_img2("res/images/davidface.jpg", GL_REPEAT);
+
 	//Vertex Array Object
 
 	VertexArray va[2];
@@ -98,36 +103,51 @@ int main(void)
 	vbo1.UnBind();
 
 	//Binding VAO for different geometry
-#if 0
+
 	va[1].Bind();
 
-	float tri[] = {
-		//positions			
-		0.35f, -0.5f, 0.0f,
-		0.9f, -0.5f, 0.0f,
-		0.45f, 0.5f, 0.0f
+	float rect_2[] = {
+		//positions			//texture coords		
+		-0.5f, -0.5f,		0.0f, 0.0f,
+		-0.5f,  0.5f,		0.0f, 1.0f,
+		 0.5f,  0.5f,		1.0f, 1.0f,
+		 0.5f, -0.5f,		1.0f, 0.0f
 	};
 
-	VertexBuffer vbo2(tri, sizeof(tri));
+	VertexBuffer vbo2(rect_2, sizeof(rect_2));
 
-	VertexLayout trilayout;
-	trilayout.Push<float>(3, 0);
-	va[1].AddLayout(trilayout);
+	VertexLayout rect_2_layout;
+	rect_2_layout.Push<float>(2, 0);
+	rect_2_layout.Push<float>(2, (void*) (2 * sizeof(float)));
+	rect_2_layout.SetStride(4 * sizeof(float));
+
+	va[1].AddLayout(rect_2_layout);
+	//Index buffers code
+
+	unsigned int indices2[] = {
+		0, 1, 2,
+		2, 3, 0
+	};
+
+	IndexBuffer ibo2(indices2, sizeof(indices2));
 
 	vbo2.UnBind();
 	va[1].UnBind();
-#endif
+
 	//Shader Program Creation
 	Shader shaderProgram("res/shaders/Vertex.shader", "res/shaders/Fragment.shader");
+
 	//Using/Binding the shader program
 	shaderProgram.Use();
-	shaderProgram.SetUniform1<int>("u_Texture1", 0);
-	shaderProgram.SetUniform1<int>("u_Texture2", 1);
-	shaderProgram.SetUniform1<float>("u_xShift", -0.15f);
 
-	texture1.Bind(0);
-	texture2.Bind(1);
+	shaderProgram.SetUniform<int>("u_Texture1", 0);
+	shaderProgram.SetUniform<int>("u_Texture2", 1);
+	shaderProgram.SetUniform<float>("u_xShift", -0.15f);
 
+	//Using second shader program
+	Shader shaderProgram_2("res/shaders/Vertex_2.shader", "res/shaders/Fragment_2.shader");
+	shaderProgram_2.Use();
+	
 	float r = 0.0f;
 	float increment = 0.05f;
 	float smileyFac = 0.2f;
@@ -137,15 +157,37 @@ int main(void)
 	{
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
-		shaderProgram.SetUniformF("u_Color", r, 0.3f, 0.8f, 1.0f);
-		shaderProgram.SetUniform1<float>("u_MixVal", smileyFac);
 
+		shaderProgram.Use();
+
+		glm::mat4 trans1(1.0f);
+		trans1 = glm::scale(trans1, glm::vec3( sin(glfwGetTime() ), sin(glfwGetTime()), sin (glfwGetTime()) ));
+		trans1 = glm::translate(trans1, glm::vec3(-0.2f, 0.8f, 0.0f));
+
+		shaderProgram.SetUniformF("u_Color", r, 0.3f, 0.8f, 1.0f);
+		shaderProgram.SetUniform<float>("u_MixVal", smileyFac);
+		shaderProgram.SetUniform<glm::mat4>("u_Trans", trans1);
+
+		texture1.Bind(0);
+		texture2.Bind(1);
 		va[0].Bind();
-		vbo1.ShiftXY(0.005f, 0.0f );
+		
+//		vbo1.ShiftXY(0.005f, 0.0f );
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
-		//va[1].Bind();
-		//glDrawArrays(GL_TRIANGLES, 0, 3);	//Render from the currently bound buffer
+		shaderProgram_2.Use();
+		//OpenGL Maths Starts
+		glm::mat4 trans(1.0f);
+		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0, 0.0, 1.0));
+		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		//OpenGL Maths Ends
+
+		shaderProgram_2.SetUniform<glm::mat4>("u_Transform", trans);
+
+		texture_img2.Bind(0);
+		va[1].Bind();
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
 		if (r < 0.0f)
 			increment = 0.05f;
