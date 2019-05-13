@@ -13,6 +13,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+#define PERSPECTIVE 0
+#define THREED 1
+#define TWOD 0
+
 void inputKey(GLFWwindow* win, float &smileyFactor)
 {
 	if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -72,10 +76,10 @@ int main(void)
 
 	float rect[] = {
 		//rect coords		//texture coords	//colors
-		-0.8f, -0.8f,		0.0f, 0.0f,			0.2f, 0.3f, 0.8f,
-		-0.8f,  0.3f,		0.0f, 2.0f,			0.6f, 0.2f, 0.1f,
-		 0.1f,  0.3f,		2.0f, 2.0f,			0.1f, 0.7f, 0.2f,
-		 0.1f, -0.8f,		2.0f, 0.0f,			0.3f, 0.4f, 0.5f
+		-160.0f, -160.0f,		0.0f, 0.0f,			0.2f, 0.3f, 0.8f,
+		-160.0f,  60.0f,		0.0f, 2.0f,			0.6f, 0.2f, 0.1f,
+		 20.0f,  60.0f,			2.0f, 2.0f,			0.1f, 0.7f, 0.2f,
+		 20.0f, -160.0f,		2.0f, 0.0f,			0.3f, 0.4f, 0.5f
 	};
 
 	//Below are the necessary steps to be followed to actually render a triangle as OpenGL is a state machine
@@ -107,26 +111,58 @@ int main(void)
 	va[1].Bind();
 
 	float rect_2[] = {
-		//positions			//texture coords		
-		-0.5f, -0.5f,		0.0f, 0.0f,
-		-0.5f,  0.5f,		0.0f, 1.0f,
-		 0.5f,  0.5f,		1.0f, 1.0f,
-		 0.5f, -0.5f,		1.0f, 0.0f
+		//positions				//texture coords
+		-50.0f, -50.0f, -50.0f,	0.0f, 0.0f,
+		-50.0f,  50.0f, -50.0f,	0.0f, 1.0f,
+		 50.0f,  50.0f, -50.0f,	1.0f, 1.0f,
+		 50.0f, -50.0f, -50.0f,	1.0f, 0.0f,
+
+		-50.0f, -50.0f,  50.0f,	1.0f, 0.0f,
+		-50.0f,  50.0f,  50.0f,	1.0f, 1.0f,
+		 50.0f,  50.0f,  50.0f,	0.0f, 1.0f,
+		 50.0f, -50.0f,  50.0f,	0.0f, 0.0f,
+
+		 //top face
+		-50.0f,  50.0f, -50.0f,	0.0f, 0.0f,
+		 50.0f,  50.0f, -50.0f,	0.0f, 1.0f,
+		 50.0f,  50.0f,  50.0f,	1.0f, 1.0f,
+		-50.0f,  50.0f,  50.0f,	1.0f, 0.0f,
+
+		//bottom face
+		-50.0f, -50.0f, -50.0f,	0.0f, 0.0f,
+		 50.0f, -50.0f, -50.0f,	0.0f, 1.0f,
+		 50.0f, -50.0f,  50.0f,	1.0f, 1.0f,
+		-50.0f, -50.0f,  50.0f,	1.0f, 0.0f
 	};
 
 	VertexBuffer vbo2(rect_2, sizeof(rect_2));
 
 	VertexLayout rect_2_layout;
-	rect_2_layout.Push<float>(2, 0);
-	rect_2_layout.Push<float>(2, (void*) (2 * sizeof(float)));
-	rect_2_layout.SetStride(4 * sizeof(float));
+	rect_2_layout.Push<float>(3, 0);
+	rect_2_layout.Push<float>(2, (void*) (3 * sizeof(float)));
+	rect_2_layout.SetStride(5 * sizeof(float));
 
 	va[1].AddLayout(rect_2_layout);
 	//Index buffers code
 
 	unsigned int indices2[] = {
-		0, 1, 2,
-		2, 3, 0
+		0, 1, 2,	//front face of cube
+		2, 3, 0,
+
+		3, 2, 6,	//adjacent right of front
+		6, 7, 3,
+
+		0, 1, 5,	//adjacent left of front
+		5, 4, 0, 
+
+		4, 5, 6,	//back face of cube
+		6, 7, 4,
+
+		8, 9, 10,	//top face of cube
+		10, 11, 8,
+
+		12, 13, 14,	//bottom face of cube
+		14, 15, 12
 	};
 
 	IndexBuffer ibo2(indices2, sizeof(indices2));
@@ -134,59 +170,80 @@ int main(void)
 	vbo2.UnBind();
 	va[1].UnBind();
 
+	//Common part for both 2d and 3d
+	glm::mat4 view(1.0f);
+	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -300.0f));
+
+	glm::mat4 proj(1.0f);
+#if PERSPECTIVE
+	proj = glm::perspective(glm::radians(85.0f), (float)800 / 600, 0.1f, 500.0f);
+#else
+	proj = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, 0.1f, 500.0f);
+#endif
+
+
+#if TWOD
 	//Shader Program Creation
 	Shader shaderProgram("res/shaders/Vertex.shader", "res/shaders/Fragment.shader");
 
 	//Using/Binding the shader program
 	shaderProgram.Use();
 
+	glm::mat4 model(1.0f);
+	model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0, 0.0, 0.0));
+
+	shaderProgram.SetUniform<glm::mat4>("u_Model", model);
+	shaderProgram.SetUniform<glm::mat4>("u_View", view);
+	shaderProgram.SetUniform<glm::mat4>("u_Projection", proj);
+
 	shaderProgram.SetUniform<int>("u_Texture1", 0);
 	shaderProgram.SetUniform<int>("u_Texture2", 1);
 	shaderProgram.SetUniform<float>("u_xShift", -0.15f);
+
+	float r = 0.0f;
+	float increment = 0.05f;
+	float smileyFac = 0.2f;
+
+#endif
+#if THREED
 
 	//Using second shader program
 	Shader shaderProgram_2("res/shaders/Vertex_2.shader", "res/shaders/Fragment_2.shader");
 	shaderProgram_2.Use();
 	
-	float r = 0.0f;
-	float increment = 0.05f;
-	float smileyFac = 0.2f;
+	//shaderProgram_2.SetUniform<glm::mat4>("u_Model", model);
+	shaderProgram_2.SetUniform<glm::mat4>("u_View", view);
+	shaderProgram_2.SetUniform<glm::mat4>("u_Projection", proj);
+
+	glm::vec3 cubePositions[] = {
+		glm::vec3 (0.0f, 0.0f, 0.0f),
+		glm::vec3 (-125.0f, 200.0f, -150.0f),
+		glm::vec3 (150.0f, 100.0f, 50.0f),
+		glm::vec3 (-200.0f, -140.0f, 50.0f),
+		glm::vec3 (300.0f, -140.0f, -200.0f)
+	};
+	
+	glEnable(GL_DEPTH_TEST);
+
+#endif
+
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
-
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#if TWOD
 		shaderProgram.Use();
-
-		glm::mat4 trans1(1.0f);
-		trans1 = glm::scale(trans1, glm::vec3( sin(glfwGetTime() ), sin(glfwGetTime()), sin (glfwGetTime()) ));
-		trans1 = glm::translate(trans1, glm::vec3(-0.2f, 0.8f, 0.0f));
 
 		shaderProgram.SetUniformF("u_Color", r, 0.3f, 0.8f, 1.0f);
 		shaderProgram.SetUniform<float>("u_MixVal", smileyFac);
-		shaderProgram.SetUniform<glm::mat4>("u_Trans", trans1);
 
 		texture1.Bind(0);
 		texture2.Bind(1);
 		va[0].Bind();
 		
-//		vbo1.ShiftXY(0.005f, 0.0f );
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
-		shaderProgram_2.Use();
-		//OpenGL Maths Starts
-		glm::mat4 trans(1.0f);
-		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0, 0.0, 1.0));
-		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		//OpenGL Maths Ends
-
-		shaderProgram_2.SetUniform<glm::mat4>("u_Transform", trans);
-
-		texture_img2.Bind(0);
-		va[1].Bind();
-
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
 		if (r < 0.0f)
@@ -196,6 +253,25 @@ int main(void)
 		r += increment;
 
 		inputKey(window, smileyFac);
+
+#endif
+#if THREED
+		shaderProgram_2.Use();
+
+		texture_img2.Bind(0);
+		va[1].Bind();
+
+		for (int i = 1; i < 6; i++)
+		{
+			glm::mat4 trans1(1.0f);
+			trans1 = glm::translate(trans1, cubePositions[i - 1]);
+		
+			trans1 = glm::rotate(trans1, (float)glfwGetTime() * glm::radians(40.0f*i), glm::vec3(2.0f, 4.0f, 0.0f));
+			shaderProgram_2.SetUniform<glm::mat4>("u_Model", trans1);
+
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
+		}
+#endif
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
