@@ -13,8 +13,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#define PERSPECTIVE 0
+#define PERSPECTIVE 1
 #define THREED 1
+#define ROTATE_CUBES 0
+#define ROTATE_CAMERA 1
 #define TWOD 0
 
 void inputKey(GLFWwindow* win, float &smileyFactor)
@@ -32,6 +34,20 @@ void inputKey(GLFWwindow* win, float &smileyFactor)
 		if ( smileyFactor > 0.0f)
 		smileyFactor -= 0.01f;
 	}
+}
+
+void inputKey(GLFWwindow* win, glm::vec3 &camPos, glm::vec3 & camFront, glm::vec3 & camUp)
+{
+	float camSpd = 0.05f;
+	float camSpd1 = 0.5f;
+	if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
+		camPos += camSpd * camFront;
+	if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
+		camPos -= camSpd * camFront;
+	if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
+		camPos -= glm::normalize(glm::cross(camFront, camUp))*camSpd1;
+	if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
+		camPos += glm::normalize(glm::cross(camFront, camUp))*camSpd1;
 }
 
 int main(void)
@@ -176,7 +192,7 @@ int main(void)
 
 	glm::mat4 proj(1.0f);
 #if PERSPECTIVE
-	proj = glm::perspective(glm::radians(85.0f), (float)800 / 600, 0.1f, 500.0f);
+	proj = glm::perspective(glm::radians(85.0f), (float)800 / 600, 0.1f, 800.0f);
 #else
 	proj = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, 0.1f, 500.0f);
 #endif
@@ -211,8 +227,10 @@ int main(void)
 	Shader shaderProgram_2("res/shaders/Vertex_2.shader", "res/shaders/Fragment_2.shader");
 	shaderProgram_2.Use();
 	
-	//shaderProgram_2.SetUniform<glm::mat4>("u_Model", model);
-	shaderProgram_2.SetUniform<glm::mat4>("u_View", view);
+	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 400.0f);
+	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -100.0f);
+	glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	
 	shaderProgram_2.SetUniform<glm::mat4>("u_Projection", proj);
 
 	glm::vec3 cubePositions[] = {
@@ -261,16 +279,32 @@ int main(void)
 		texture_img2.Bind(0);
 		va[1].Bind();
 
+#if ROTATE_CAMERA
+		float rad = 400.0f;
+		cameraPos = glm::vec3(sin(glfwGetTime())*rad, 0.0f, cos(glfwGetTime())*rad);
+		view = glm::lookAt(cameraPos, glm::vec3(0.0f, 0.0f, 0.0f), cameraUp);
+#else
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+#endif
+
+		shaderProgram_2.SetUniform<glm::mat4>("u_View", view);
+
 		for (int i = 1; i < 6; i++)
 		{
 			glm::mat4 trans1(1.0f);
 			trans1 = glm::translate(trans1, cubePositions[i - 1]);
-		
+
+#if ROTATE_CUBES
 			trans1 = glm::rotate(trans1, (float)glfwGetTime() * glm::radians(40.0f*i), glm::vec3(2.0f, 4.0f, 0.0f));
+#endif
 			shaderProgram_2.SetUniform<glm::mat4>("u_Model", trans1);
 
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 		}
+#if !ROTATE_CAMERA
+		inputKey(window, cameraPos, cameraFront, cameraUp);
+#endif
+
 #endif
 
 		/* Swap front and back buffers */
